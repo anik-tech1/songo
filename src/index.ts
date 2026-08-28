@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { jwt, verify } from "hono/jwt";
+import { verify } from "hono/jwt";
 import { auth } from "./auth";
 import { songs } from "./songs";
 import { playlists } from "./playlists";
@@ -45,16 +45,18 @@ app.get("/api/auth/me", async (c) => {
 app.route("/", songs);
 app.route("/", playlists);
 
+async function initialize(env: Env) {
+  await ensureSchema(env);
+  await seedDefaultUser(env);
+  await seedFromB2(env);
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api/")) {
-      ctx.waitUntil((async () => {
-        await ensureSchema(env);
-        await seedDefaultUser(env);
-        await seedFromB2(env);
-      })());
+      await initialize(env);
       return app.fetch(request, env, ctx);
     }
 
