@@ -53,18 +53,15 @@ export async function listB2Tracks(): Promise<string[]> {
     },
   });
   const auth = await authRes.json() as any;
-  const apiUrl = auth.apiUrl;
+  const apiUrl = auth.apiUrl || "https://api003.backblazeb2.com";
+  const authToken = auth.authorizationToken;
 
   let hasMore = true;
   while (hasMore) {
-    const url = new URL(`${apiUrl}/b2api/v2/b2_list_file_names`);
-    url.searchParams.set("bucketId", "b3cce0928a594a74a402011d");
-    url.searchParams.set("maxFileCount", "1000");
-    url.searchParams.set("prefix", "tracks/");
-    if (startFileName) url.searchParams.set("startFileName", startFileName);
+    const url = `${apiUrl}/b2api/v2/b2_list_file_names?bucketId=b3cce0928a594a74a402011d&maxFileCount=1000&prefix=tracks%2F${startFileName ? "&startFileName=" + encodeURIComponent(startFileName) : ""}`;
 
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: auth.authorizationToken },
+    const res = await fetch(url, {
+      headers: { Authorization: authToken },
     });
     const data = await res.json() as any;
 
