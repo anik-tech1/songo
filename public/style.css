@@ -211,9 +211,22 @@ tbody tr:hover { background: var(--surface-hover); }
   font-size: 1.2rem;
   cursor: pointer;
   padding: 0.25rem;
+  position: relative;
 }
 
 .player-controls button:hover { color: var(--accent); }
+.player-controls button.active {
+  color: var(--accent);
+  text-shadow: 0 0 8px var(--accent);
+}
+.player-controls button.active.repeat-one::after {
+  content: "1";
+  font-size: 0.5rem;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-weight: 700;
+}
 #play-btn { font-size: 1.5rem; }
 
 .player-progress {

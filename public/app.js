@@ -73,7 +73,7 @@ function playTrack(id) {
   currentQueue = [...allTracks];
   originalQueue = [...allTracks];
   isShuffled = false;
-  $("#shuffle-btn").style.color = "";
+  $("#shuffle-btn").classList.remove("active");
   queueIndex = currentQueue.findIndex((t) => t.id === id);
 
   loadAndPlay(track);
@@ -85,7 +85,7 @@ function playFromPlaylist(id) {
   currentQueue = [...currentPlaylistTracks];
   originalQueue = [...currentPlaylistTracks];
   isShuffled = false;
-  $("#shuffle-btn").style.color = "";
+  $("#shuffle-btn").classList.remove("active");
   queueIndex = currentQueue.findIndex((t) => t.id === id);
 
   loadAndPlay(currentQueue[queueIndex]);
@@ -97,7 +97,7 @@ function playAllFromPlaylist() {
   currentQueue = [...currentPlaylistTracks];
   originalQueue = [...currentPlaylistTracks];
   isShuffled = false;
-  $("#shuffle-btn").style.color = "";
+  $("#shuffle-btn").classList.remove("active");
   queueIndex = 0;
 
   loadAndPlay(currentQueue[0]);
@@ -136,7 +136,8 @@ function playPrev() {
 
 function toggleShuffle() {
   isShuffled = !isShuffled;
-  $("#shuffle-btn").style.color = isShuffled ? "var(--accent)" : "";
+  const btn = $("#shuffle-btn");
+  btn.classList.toggle("active", isShuffled);
 
   if (isShuffled) {
     const current = currentQueue[queueIndex];
@@ -154,14 +155,9 @@ function toggleShuffle() {
 function toggleRepeat() {
   repeatMode = (repeatMode + 1) % 3;
   const btn = $("#repeat-btn");
-  btn.style.color = repeatMode > 0 ? "var(--accent)" : "";
-  if (repeatMode === 0) {
-    btn.innerHTML = "&#x1F501;";
-  } else if (repeatMode === 1) {
-    btn.innerHTML = "&#x1F501;";
-  } else {
-    btn.innerHTML = "&#x1F502;";
-  }
+  btn.classList.toggle("active", repeatMode > 0);
+  btn.classList.toggle("repeat-one", repeatMode === 2);
+  btn.innerHTML = repeatMode === 2 ? "&#x1F502;" : "&#x1F501;";
 }
 
 function shuffleArray(arr) {
