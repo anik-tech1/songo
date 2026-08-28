@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "npx tsx src/server.ts",
     "create-user": "node scripts/create-user.mjs",
     "upload-tracks": "node scripts/upload-tracks.mjs"
   },
