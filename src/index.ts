@@ -11,7 +11,14 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use("*", cors());
 
-app.get("/api/health", (c) => c.json({ status: "ok" }));
+app.get("/api/health", async (c) => {
+  try {
+    const result = await c.env.DB.prepare("SELECT count(*) as c FROM users").first<{ c: number }>();
+    return c.json({ status: "ok", users: result?.c ?? 0 });
+  } catch (err: any) {
+    return c.json({ status: "error", error: err.message }, 500);
+  }
+});
 
 app.route("/", auth);
 
@@ -45,16 +52,14 @@ app.get("/api/auth/me", async (c) => {
 app.route("/", songs);
 app.route("/", playlists);
 
-let initPromise: Promise<void> | null = null;
+let initDone = false;
 
 async function initialize(env: Env) {
-  if (initPromise) return initPromise;
-  initPromise = (async () => {
-    await ensureSchema(env);
-    await seedDefaultUser(env);
-    await seedFromB2(env);
-  })();
-  return initPromise;
+  if (initDone) return;
+  await ensureSchema(env);
+  await seedDefaultUser(env);
+  initDone = true;
+  seedFromB2(env).catch((e) => console.error("B2 seed error:", e));
 }
 
 export default {
