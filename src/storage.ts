@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand, ListObjectsCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const B2 = new S3Client({
@@ -45,27 +45,40 @@ export { B2, BUCKET };
 
 export async function listB2Tracks(): Promise<string[]> {
   const keys: string[] = [];
-  let marker = "";
+  let startFileName = "";
 
-  do {
-    const command = new ListObjectsCommand({
-      Bucket: BUCKET,
-      Prefix: "tracks/",
-      Marker: marker,
-      MaxKeys: 1000,
+  const authRes = await fetch("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", {
+    headers: {
+      Authorization: "Basic " + btoa(`${(process.env.B2_KEY_ID || "").trim()}:${(process.env.B2_APP_KEY || "").trim()}`),
+    },
+  });
+  const auth = await authRes.json() as any;
+  const apiUrl = auth.apiUrl;
+
+  let hasMore = true;
+  while (hasMore) {
+    const url = new URL(`${apiUrl}/b2api/v2/b2_list_file_names`);
+    url.searchParams.set("bucketId", "b3cce0928a594a74a402011d");
+    url.searchParams.set("maxFileCount", "1000");
+    url.searchParams.set("prefix", "tracks/");
+    if (startFileName) url.searchParams.set("startFileName", startFileName);
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: auth.authorizationToken },
     });
-    const response = await B2.send(command);
-    if (response.Contents) {
-      for (const obj of response.Contents) {
-        if (obj.Key) keys.push(obj.Key);
+    const data = await res.json() as any;
+
+    if (data.files) {
+      for (const file of data.files) {
+        if (file.fileName && file.fileName.endsWith(".mp3")) {
+          keys.push(file.fileName);
+        }
       }
     }
-    if (response.IsTruncated && response.Contents && response.Contents.length > 0) {
-      marker = response.Contents[response.Contents.length - 1].Key!;
-    } else {
-      break;
-    }
-  } while (true);
+
+    hasMore = data.nextFileName != null;
+    startFileName = data.nextFileName || "";
+  }
 
   return keys;
 }
