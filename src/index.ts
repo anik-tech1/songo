@@ -13,8 +13,9 @@ app.use("*", cors());
 
 app.get("/api/health", async (c) => {
   try {
-    const result = await c.env.DB.prepare("SELECT count(*) as c FROM users").first<{ c: number }>();
-    return c.json({ status: "ok", users: result?.c ?? 0 });
+    const users = await c.env.DB.prepare("SELECT count(*) as c FROM users").first<{ c: number }>();
+    const songs = await c.env.DB.prepare("SELECT count(*) as c FROM songs").first<{ c: number }>();
+    return c.json({ status: "ok", users: users?.c ?? 0, songs: songs?.c ?? 0 });
   } catch (err: any) {
     return c.json({ status: "error", error: err.message }, 500);
   }
