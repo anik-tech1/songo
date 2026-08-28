@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const B2 = new S3Client({
@@ -42,3 +42,25 @@ export async function headB2Object(key: string) {
 }
 
 export { B2, BUCKET };
+
+export async function listB2Tracks(): Promise<string[]> {
+  const keys: string[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const command = new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: "tracks/",
+      ContinuationToken: continuationToken,
+    });
+    const response = await B2.send(command);
+    if (response.Contents) {
+      for (const obj of response.Contents) {
+        if (obj.Key) keys.push(obj.Key);
+      }
+    }
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  return keys;
+}

@@ -77,6 +77,35 @@ export async function initDb(): Promise<SqlJsDatabase> {
   return db;
 }
 
+export async function seedFromB2() {
+  const { listB2Tracks } = await import("./storage");
+  const existing = db.exec("SELECT count(*) as c FROM songs");
+  const count = existing[0].values[0][0] as number;
+  if (count > 0) {
+    console.log(`DB already has ${count} songs, skipping seed.`);
+    return;
+  }
+
+  console.log("DB empty, seeding from B2...");
+  const keys = await listB2Tracks();
+  console.log(`Found ${keys.length} files in B2.`);
+
+  for (const key of keys) {
+    const fileName = key.replace("tracks/", "").replace(".mp3", "");
+    const parts = fileName.split(" - ");
+    let artist = "Unknown";
+    let title = fileName;
+    if (parts.length >= 2) {
+      artist = parts[0].trim();
+      title = parts.slice(1).join(" - ").trim();
+    }
+    db.run("INSERT OR IGNORE INTO songs (title, artist, album, r2_key) VALUES (?, ?, ?, ?)", [title, artist, "", key]);
+  }
+
+  saveDb();
+  console.log(`Seeded ${keys.length} songs from B2.`);
+}
+
 export function getDb(): SqlJsDatabase {
   if (!db) throw new Error("Database not initialized. Call initDb() first.");
   return db;

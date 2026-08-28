@@ -14,13 +14,14 @@ import { jwt } from "hono/jwt";
 import { auth } from "./auth";
 import { songs } from "./songs";
 import { playlists } from "./playlists";
-import { initDb } from "./db";
+import { initDb, seedFromB2 } from "./db";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
 async function main() {
   await initDb();
+  await seedFromB2();
 
   const app = new Hono();
 
