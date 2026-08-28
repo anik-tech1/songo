@@ -9,7 +9,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { jwt } from "hono/jwt";
+import { jwt, verify } from "hono/jwt";
 
 import { auth } from "./auth";
 import { songs } from "./songs";
@@ -32,7 +32,42 @@ async function main() {
 
   app.route("/", auth);
 
-  app.use("/api/*", jwt({ secret: JWT_SECRET, alg: "HS256" }));
+  const customJwt = async (c: any, next: any) => {
+    let token: string | undefined;
+
+    const authHeader = c.req.header("Authorization");
+    if (authHeader) {
+      const parts = authHeader.split(/\s+/);
+      if (parts.length === 2 && parts[0].toLowerCase() === "bearer") {
+        token = parts[1];
+      }
+    }
+
+    if (!token) {
+      token = c.req.query("token");
+    }
+
+    if (!token) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    try {
+      const payload = await verify(token, JWT_SECRET, "HS256");
+      c.set("jwtPayload", payload);
+    } catch {
+      return c.json({ error: "Invalid token" }, 401);
+    }
+
+    await next();
+  };
+
+  app.use("/api/*", async (c, next) => {
+    const path = new URL(c.req.url).pathname;
+    if (path === "/api/auth/login" || path === "/api/health") {
+      return next();
+    }
+    return customJwt(c, next);
+  });
 
   app.get("/api/auth/me", async (c) => {
     const payload = c.get("jwtPayload") as { userId: number; username: string };
