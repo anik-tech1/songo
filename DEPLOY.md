@@ -1,148 +1,107 @@
-# Deploy SonGO — Railway + Backblaze B2
+# Deploy SonGO — Cloudflare Workers
 
-## Cost: $0/month
-- **Railway:** $5 free credit/month (enough for a small server)
-- **Backblaze B2:** 10GB free storage
+## Cost: $0/month (all free tier)
 
----
-
-## Step 1: Create Backblaze B2 Account
-
-1. Go to [backblaze.com](https://backblaze.com) → **Sign Up**
-2. No credit card needed
-3. Once logged in, go to **B2 Cloud Storage** → **Buckets**
-4. Click **Create a Bucket**
-   - Bucket Name: `songo-music`
-   - Files in Bucket: **Private**
-   - Default Encryption: **Disable**
-5. Go to **App Keys** (left sidebar) → **Add a New Application Key**
-   - Name: `songo`
-   - Bucket: `songo-music`
-   - Permissions: **Read and Write**
-6. **Copy the keyID and applicationKey** — you won't see them again
+| Service | What | Free Tier |
+|---|---|---|
+| Cloudflare Workers | API + Frontend | 100K requests/day |
+| Cloudflare D1 | Database | 5GB storage |
+| Backblaze B2 | MP3 Storage | 10GB, zero egress fees |
 
 ---
 
-## Step 2: Create Railway Account
+## Step 1: Create Accounts
 
-1. Go to [railway.app](https://railway.app) → **Login with GitHub**
-2. No credit card needed
-3. You get **$5 free credit/month**
+1. **Cloudflare** — [dash.cloudflare.com](https://dash.cloudflare.com) (free, no card)
+2. **Backblaze B2** — [backblaze.com](https://backblaze.com) (free, no card)
 
 ---
 
-## Step 3: Push Code to GitHub
+## Step 2: Get Cloudflare API Token
+
+1. Go to [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)
+2. **Create Token** → Use **"Edit Cloudflare Workers"** template
+3. Copy the token
 
 ```bash
-cd ~/Documents/Ml/SOnGO
-
-# Initialize git
-git init
-git add .
-git commit -m "initial commit"
-
-# Create repo on GitHub, then:
-git remote add origin https://github.com/YOUR_USERNAME/songo.git
-git push -u origin main
+export CLOUDFLARE_API_TOKEN="your-token"
 ```
 
 ---
 
-## Step 4: Deploy on Railway
+## Step 3: Create D1 Database
 
-1. Go to [railway.app/dashboard](https://railway.app/dashboard)
-2. Click **New Project** → **Deploy from GitHub Repo**
-3. Select your `songo` repo
-4. Once deployed, click the service → **Settings**
-5. Go to **Variables** tab and add:
+```bash
+npx wrangler d1 create songo-db
+```
 
-| Variable | Value |
-|---|---|
-| `B2_KEY_ID` | Your Backblaze keyID |
-| `B2_APP_KEY` | Your Backblaze applicationKey |
-| `B2_BUCKET` | `songo-music` |
-| `JWT_SECRET` | Any random string (e.g. `my-super-secret-123`) |
+Copy the `database_id` and update `wrangler.jsonc`:
 
-6. Railway auto-detects Node.js and deploys
-7. Click **Deploy** → wait for it to build
-8. Go to **Settings** → **Networking** → **Generate Domain** to get a public URL
+```jsonc
+"database_id": "paste-here"
+```
 
 ---
 
-## Step 5: Set Up Database + Upload Music
+## Step 4: Set Backblaze B2 Secrets
+
+```bash
+echo "your-b2-key-id" | npx wrangler secret put B2_KEY_ID
+echo "your-b2-app-key" | npx wrangler secret put B2_APP_KEY
+echo "your-jwt-secret" | npx wrangler secret put JWT_SECRET
+```
+
+---
+
+## Step 5: Deploy
+
+```bash
+npx wrangler deploy
+```
+
+You'll get a URL like `songo.WORKERS.dev`.
+
+---
+
+## Step 6: Upload Music
 
 On your local machine:
 
 ```bash
-# Install dependencies
-npm install
+# Create B2 account + bucket "songo-music" (Private)
 
-# Create admin user (in local SQLite for now — we'll fix this)
-node scripts/create-user.mjs admin your-password
-```
-
-For the remote database on Railway, you have two options:
-
-### Option A: Use Railway's PostgreSQL (Recommended)
-Railway offers free PostgreSQL. In Railway dashboard:
-1. Click **New** → **Database** → **PostgreSQL**
-2. Copy the `DATABASE_URL` variable
-3. Add it to your service's variables
-
-Then I'll update the code to use PostgreSQL instead of SQLite.
-
-### Option B: Use SQLite on Railway (simpler)
-Railway's filesystem persists between deploys for the service itself. Just set the `HOME` env var and SQLite will work. But this is less reliable.
-
----
-
-## Step 6: Upload Music to B2
-
-```bash
-# Set your B2 credentials
 export B2_KEY_ID="your-key-id"
 export B2_APP_KEY="your-app-key"
 export B2_BUCKET="songo-music"
 
-# Create tracks folder and add MP3s
+# Add MP3s
 mkdir -p tracks
 cp ~/Music/*.mp3 tracks/
 
-# Upload to B2 + insert into DB
+# Upload to B2
 node scripts/upload-tracks.mjs
 ```
 
 ---
 
-## Step 7: Open B2 Bucket for Streaming
+## Step 7: Visit Your Site
 
-By default, B2 buckets are private. For streaming, you need to either:
+Open the URL from Step 5. Login with **admin** / **password**.
 
-### Option A: Make files public (easiest)
-In B2 dashboard → **Buckets** → `songo-music` → **Bucket Info**:
-- Change **Files in Bucket** from Private to **Public**
-
-### Option B: Keep private + use signed URLs (more secure)
-The app already generates signed URLs — no changes needed.
+The server auto-seeds: creates the admin user and imports all tracks from B2 on first request.
 
 ---
 
-## Quick Reference
+## Updating
 
-| What | Where |
-|---|---|
-| Server | [railway.app](https://railway.app) |
-| MP3 Storage | [backblaze.com/b2](https://backblaze.com) |
-| Music Files | B2 bucket `songo-music` |
-| URL | Railway generates one for you |
+```bash
+npx wrangler deploy
+```
 
 ## Useful Commands
 
 ```bash
-# Railway CLI
-npm install -g @railway/cli
-railway login
-railway logs          # view logs
-railway variables     # list env vars
-railway up            # manual deploy
+npx wrangler tail                # view live logs
+npx wrangler d1 execute songo-db --command="SELECT * FROM songs"  # query DB
+npx wrangler secret list          # list secrets
 ```
