@@ -57,7 +57,13 @@
         </main>
 
         <main id="playlist-view" class="hidden">
-          <h2 id="playlist-title">Playlist</h2>
+          <div class="playlist-header">
+            <h2 id="playlist-title">Playlist</h2>
+            <div class="playlist-actions">
+              <button onclick="playAllFromPlaylist()" title="Play All">&#x25B6; Play All</button>
+              <button onclick="deletePlaylist(currentPlaylistId)" title="Delete Playlist">&#x1F5D1; Delete</button>
+            </div>
+          </div>
           <table id="playlist-table">
             <thead>
               <tr>
@@ -92,6 +98,16 @@
         <div class="player-extras">
           <input type="range" id="volume-bar" min="0" max="1" step="0.01" value="1">
           <button id="download-btn" title="Download">&#x2B07;</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="add-to-playlist-modal" class="hidden">
+      <div class="modal-content">
+        <h3>Add to Playlist</h3>
+        <ul id="playlist-select-list" class="playlist-select-list"></ul>
+        <div class="modal-actions">
+          <button id="add-to-playlist-modal-cancel">Cancel</button>
         </div>
       </div>
     </div>

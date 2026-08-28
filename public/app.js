@@ -2,15 +2,17 @@ const API = "";
 let token = localStorage.getItem("songo_token");
 let allTracks = [];
 let currentQueue = [];
+let originalQueue = [];
 let queueIndex = -1;
 let isShuffled = false;
-let repeatMode = 0; // 0=off, 1=all, 2=one
+let repeatMode = 0;
+let currentPlaylistId = null;
+let currentPlaylistTracks = [];
 
 const audio = document.getElementById("audio-player");
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
-// -- Auth --
 async function login(username, password) {
   const res = await fetch(`${API}/api/auth/login`, {
     method: "POST",
@@ -36,7 +38,6 @@ async function checkAuth() {
   }
 }
 
-// -- Tracks --
 async function fetchTracks() {
   const res = await fetch(`${API}/api/songs`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -58,23 +59,48 @@ function renderTracks() {
       <td class="track-actions">
         <button onclick="playTrack(${t.id})" title="Play">&#x25B6;</button>
         <button onclick="downloadTrack(${t.id}, '${esc(t.title)}')" title="Download">&#x2B07;</button>
-        <button onclick="promptAddToPlaylist(${t.id})" title="Add to playlist">+</button>
+        <button onclick="showAddToPlaylistModal(${t.id})" title="Add to playlist">+</button>
       </td>
     </tr>`
     )
     .join("");
 }
 
-// -- Player --
 function playTrack(id) {
   const track = allTracks.find((t) => t.id === id);
   if (!track) return;
 
   currentQueue = [...allTracks];
-  if (isShuffled) shuffleArray(currentQueue);
+  originalQueue = [...allTracks];
+  isShuffled = false;
+  $("#shuffle-btn").style.color = "";
   queueIndex = currentQueue.findIndex((t) => t.id === id);
 
   loadAndPlay(track);
+}
+
+function playFromPlaylist(id) {
+  if (currentPlaylistTracks.length === 0) return;
+
+  currentQueue = [...currentPlaylistTracks];
+  originalQueue = [...currentPlaylistTracks];
+  isShuffled = false;
+  $("#shuffle-btn").style.color = "";
+  queueIndex = currentQueue.findIndex((t) => t.id === id);
+
+  loadAndPlay(currentQueue[queueIndex]);
+}
+
+function playAllFromPlaylist() {
+  if (currentPlaylistTracks.length === 0) return;
+
+  currentQueue = [...currentPlaylistTracks];
+  originalQueue = [...currentPlaylistTracks];
+  isShuffled = false;
+  $("#shuffle-btn").style.color = "";
+  queueIndex = 0;
+
+  loadAndPlay(currentQueue[0]);
 }
 
 function loadAndPlay(track) {
@@ -111,9 +137,16 @@ function playPrev() {
 function toggleShuffle() {
   isShuffled = !isShuffled;
   $("#shuffle-btn").style.color = isShuffled ? "var(--accent)" : "";
+
   if (isShuffled) {
     const current = currentQueue[queueIndex];
-    shuffleArray(currentQueue);
+    const remaining = currentQueue.filter((_, i) => i !== queueIndex);
+    shuffleArray(remaining);
+    currentQueue = [current, ...remaining];
+    queueIndex = 0;
+  } else {
+    const current = currentQueue[queueIndex];
+    currentQueue = [...originalQueue];
     queueIndex = currentQueue.findIndex((t) => t.id === current?.id);
   }
 }
@@ -122,10 +155,15 @@ function toggleRepeat() {
   repeatMode = (repeatMode + 1) % 3;
   const btn = $("#repeat-btn");
   btn.style.color = repeatMode > 0 ? "var(--accent)" : "";
-  btn.innerHTML = repeatMode === 2 ? "&#x1F502;" : "&#x1F501;";
+  if (repeatMode === 0) {
+    btn.innerHTML = "&#x1F501;";
+  } else if (repeatMode === 1) {
+    btn.innerHTML = "&#x1F501;";
+  } else {
+    btn.innerHTML = "&#x1F502;";
+  }
 }
 
-// Fisher-Yates shuffle
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -149,7 +187,6 @@ function downloadTrack(id, title) {
   a.remove();
 }
 
-// -- Playlists --
 async function fetchPlaylists() {
   const res = await fetch(`${API}/api/playlists`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -169,7 +206,7 @@ function renderPlaylistNav(playlists) {
 }
 
 async function createPlaylist(name) {
-  await fetch(`${API}/api/playlists`, {
+  const res = await fetch(`${API}/api/playlists`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -177,10 +214,10 @@ async function createPlaylist(name) {
     },
     body: JSON.stringify({ name }),
   });
-  fetchPlaylists();
+  const data = await res.json();
+  await fetchPlaylists();
+  return data.playlist;
 }
-
-let currentPlaylistId = null;
 
 async function loadPlaylist(id, name) {
   currentPlaylistId = id;
@@ -188,21 +225,26 @@ async function loadPlaylist(id, name) {
   $("#track-view").classList.add("hidden");
   $("#playlist-view").classList.remove("hidden");
 
-  $$("#nav li").forEach((li) => li.classList.remove("active"));
+  $$("#sidebar li").forEach((li) => li.classList.remove("active"));
 
   const res = await fetch(`${API}/api/playlists/${id}/tracks`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
+  currentPlaylistTracks = data.tracks || [];
+  renderPlaylistTracks();
+}
+
+function renderPlaylistTracks() {
   const tbody = $("#playlist-tracks");
-  tbody.innerHTML = (data.tracks || [])
+  tbody.innerHTML = currentPlaylistTracks
     .map(
       (t, i) => `<tr>
       <td>${i + 1}</td>
       <td>${esc(t.title)}</td>
       <td>${esc(t.artist)}</td>
       <td class="track-actions">
-        <button onclick="playTrack(${t.id})" title="Play">&#x25B6;</button>
+        <button onclick="playFromPlaylist(${t.id})" title="Play">&#x25B6;</button>
         <button onclick="removeFromPlaylist(${currentPlaylistId}, ${t.id})" title="Remove">&#x2715;</button>
       </td>
     </tr>`
@@ -229,33 +271,41 @@ async function removeFromPlaylist(playlistId, songId) {
   loadPlaylist(playlistId, $("#playlist-title").textContent);
 }
 
+async function deletePlaylist(id) {
+  if (!confirm("Delete this playlist?")) return;
+  await fetch(`${API}/api/playlists/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  currentPlaylistId = null;
+  $("#track-view").classList.remove("hidden");
+  $("#playlist-view").classList.add("hidden");
+  fetchPlaylists();
+}
+
 let pendingSongId = null;
 
-function promptAddToPlaylist(songId) {
+async function showAddToPlaylistModal(songId) {
   pendingSongId = songId;
-  // Simple prompt for now
-  const name = prompt("Enter playlist name to add to (or create new):");
-  if (name) {
-    createPlaylist(name).then(() => {
-      fetchPlaylists().then(() => {
-        // Add to the first playlist
-        const nav = $("#playlist-nav");
-        if (nav.firstChild) {
-          nav.firstChild.click();
-        }
-      });
-    });
-  }
+  const res = await fetch(`${API}/api/playlists`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  const playlists = data.playlists || [];
+
+  const list = $("#playlist-select-list");
+  list.innerHTML = playlists.map(
+    (p) => `<li onclick="addSongToPlaylist(${p.id}, '${esc(p.name)}')">${esc(p.name)}</li>`
+  ).join("") || '<li style="color:var(--text-muted)">No playlists yet. Create one first.</li>';
+
+  $("#add-to-playlist-modal").classList.remove("hidden");
 }
 
-// -- Helpers --
-function esc(s) {
-  const div = document.createElement("div");
-  div.textContent = s || "";
-  return div.innerHTML;
+function addSongToPlaylist(playlistId, name) {
+  addToPlaylist(playlistId, pendingSongId);
+  $("#add-to-playlist-modal").classList.add("hidden");
 }
 
-// -- Events --
 document.addEventListener("DOMContentLoaded", async () => {
   if (await checkAuth()) {
     showMain();
@@ -296,7 +346,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (repeatMode === 2) {
       audio.currentTime = 0;
       audio.play();
-    } else if (repeatMode === 1 || queueIndex < currentQueue.length - 1) {
+    } else if (repeatMode === 1) {
+      playNext();
+    } else if (queueIndex < currentQueue.length - 1) {
       playNext();
     } else {
       $("#play-btn").innerHTML = "&#x25B6;";
@@ -321,6 +373,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#create-playlist-modal").classList.add("hidden");
   });
 
+  $("#add-to-playlist-modal-cancel").addEventListener("click", () => {
+    $("#add-to-playlist-modal").classList.add("hidden");
+  });
+
   $("#modal-create").addEventListener("click", async () => {
     const name = $("#playlist-name-input").value.trim();
     if (name) {
@@ -330,12 +386,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  $$("#nav li").forEach((li) => {
+  $$("#sidebar li").forEach((li) => {
     li.addEventListener("click", () => {
-      $$("#nav li").forEach((l) => l.classList.remove("active"));
+      $$("#sidebar li").forEach((l) => l.classList.remove("active"));
       li.classList.add("active");
       $("#track-view").classList.remove("hidden");
       $("#playlist-view").classList.add("hidden");
+      currentPlaylistId = null;
     });
   });
 });
