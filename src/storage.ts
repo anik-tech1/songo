@@ -47,9 +47,12 @@ export async function listB2Tracks(): Promise<string[]> {
   const keys: string[] = [];
   let startFileName = "";
 
-  const credentials = Buffer.from(
-    `${(process.env.B2_KEY_ID || "").trim()}:${(process.env.B2_APP_KEY || "").trim()}`
-  ).toString("base64");
+  const keyId = (process.env.B2_KEY_ID || "").trim();
+  const appKey = (process.env.B2_APP_KEY || "").trim();
+  console.log(`B2 Key ID: "${keyId}" (len: ${keyId.length})`);
+  console.log(`B2 App Key: "${appKey.slice(0,4)}...${appKey.slice(-4)}" (len: ${appKey.length})`);
+
+  const credentials = Buffer.from(`${keyId}:${appKey}`).toString("base64");
 
   const authRes = await fetch("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", {
     headers: {
