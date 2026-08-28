@@ -47,14 +47,23 @@ export async function listB2Tracks(): Promise<string[]> {
   const keys: string[] = [];
   let startFileName = "";
 
+  const credentials = Buffer.from(
+    `${(process.env.B2_KEY_ID || "").trim()}:${(process.env.B2_APP_KEY || "").trim()}`
+  ).toString("base64");
+
   const authRes = await fetch("https://api.backblazeb2.com/b2api/v2/b2_authorize_account", {
     headers: {
-      Authorization: "Basic " + btoa(`${(process.env.B2_KEY_ID || "").trim()}:${(process.env.B2_APP_KEY || "").trim()}`),
+      Authorization: `Basic ${credentials}`,
     },
   });
   const auth = await authRes.json() as any;
-  const apiUrl = auth.apiUrl || "https://api003.backblazeb2.com";
+  if (!auth.apiUrl || !auth.authorizationToken) {
+    console.error("B2 auth failed:", JSON.stringify(auth));
+    return keys;
+  }
+  const apiUrl = auth.apiUrl;
   const authToken = auth.authorizationToken;
+  console.log(`B2 auth OK, apiUrl: ${apiUrl}`);
 
   let hasMore = true;
   while (hasMore) {
