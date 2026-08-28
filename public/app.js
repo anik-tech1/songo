@@ -142,7 +142,7 @@ function formatTime(s) {
 
 function downloadTrack(id, title) {
   const a = document.createElement("a");
-  a.href = `${API}/api/download/${id}`;
+  a.href = `${API}/api/download/${id}?token=${token}`;
   a.setAttribute("download", "");
   document.body.appendChild(a);
   a.click();
