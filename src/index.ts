@@ -15,7 +15,7 @@ app.get("/api/health", async (c) => {
   try {
     const users = await c.env.DB.prepare("SELECT count(*) as c FROM users").first<{ c: number }>();
     const songs = await c.env.DB.prepare("SELECT count(*) as c FROM songs").first<{ c: number }>();
-    return c.json({ status: "ok", users: users?.c ?? 0, songs: songs?.c ?? 0 });
+    return c.json({ status: "ok", users: users?.c ?? 0, songs: songs?.c ?? 0, hasB2Key: !!c.env.B2_KEY_ID, hasB2App: !!c.env.B2_APP_KEY });
   } catch (err: any) {
     return c.json({ status: "error", error: err.message }, 500);
   }
