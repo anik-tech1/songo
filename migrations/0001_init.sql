@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS songs (
   artist TEXT NOT NULL,
   album TEXT DEFAULT '',
   duration_seconds INTEGER DEFAULT 0,
-  r2_key TEXT NOT NULL,
+  r2_key TEXT NOT NULL UNIQUE,
   cover_key TEXT DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

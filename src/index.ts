@@ -11,21 +11,11 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use("*", cors());
 
-app.get("/api/health", async (c) => {
-  try {
-    const users = await c.env.DB.prepare("SELECT count(*) as c FROM users").first<{ c: number }>();
-    const songs = await c.env.DB.prepare("SELECT count(*) as c FROM songs").first<{ c: number }>();
-    return c.json({ status: "ok", users: users?.c ?? 0, songs: songs?.c ?? 0, hasB2Key: !!c.env.B2_KEY_ID, hasB2App: !!c.env.B2_APP_KEY });
-  } catch (err: any) {
-    return c.json({ status: "error", error: err.message }, 500);
-  }
-});
-
 app.route("/", auth);
 
 app.use("/api/*", async (c, next) => {
   const path = new URL(c.req.url).pathname;
-  if (path === "/api/auth/login" || path === "/api/health") return next();
+  if (path === "/api/auth/login") return next();
 
   let token: string | undefined;
   const authHeader = c.req.header("Authorization");
@@ -56,12 +46,11 @@ app.route("/", playlists);
 let initDone = false;
 
 async function initialize(env: Env) {
-  if (!initDone) {
-    await ensureSchema(env);
-    await seedDefaultUser(env);
-    initDone = true;
-  }
-  seedFromB2(env).catch((e) => console.error("B2 seed error:", e));
+  if (initDone) return;
+  initDone = true;
+  await ensureSchema(env);
+  await seedDefaultUser(env);
+  await seedFromB2(env);
 }
 
 export default {
