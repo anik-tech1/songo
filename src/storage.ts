@@ -2,8 +2,8 @@ import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from 
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const B2 = new S3Client({
-  region: "us-west-004",
-  endpoint: `https://s3.us-west-004.backblazeb2.com`,
+  region: process.env.B2_REGION || "us-west-004",
+  endpoint: `https://s3.${process.env.B2_REGION || "us-west-004"}.backblazeb2.com`,
   credentials: {
     accessKeyId: process.env.B2_KEY_ID || "",
     secretAccessKey: process.env.B2_APP_KEY || "",
@@ -28,8 +28,10 @@ export async function getB2Url(key: string): Promise<string> {
   return getSignedUrl(B2, command, { expiresIn: 3600 });
 }
 
-export async function getB2Object(key: string) {
-  const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+export async function getB2Object(key: string, range?: string) {
+  const params: any = { Bucket: BUCKET, Key: key };
+  if (range) params.Range = range;
+  const command = new GetObjectCommand(params);
   return B2.send(command);
 }
 

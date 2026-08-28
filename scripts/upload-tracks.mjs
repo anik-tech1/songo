@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
+import initSqlJs from "sql.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 
 const B2 = new S3Client({
-  region: "us-west-004",
-  endpoint: "https://s3.us-west-004.backblazeb2.com",
+  region: process.env.B2_REGION || "us-west-004",
+  endpoint: `https://s3.${process.env.B2_REGION || "us-west-004"}.backblazeb2.com`,
   credentials: {
     accessKeyId: process.env.B2_KEY_ID || "",
     secretAccessKey: process.env.B2_APP_KEY || "",
@@ -18,11 +18,16 @@ const BUCKET = process.env.B2_BUCKET || "songo-music";
 const DB_PATH = path.resolve(process.cwd(), "songo.db");
 const TRACKS_DIR = process.env.TRACKS_DIR || "./tracks";
 
-const db = new Database(DB_PATH);
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
+const SQL = await initSqlJs();
 
-db.exec(`
+let db;
+if (fs.existsSync(DB_PATH)) {
+  db = new SQL.Database(fs.readFileSync(DB_PATH));
+} else {
+  db = new SQL.Database();
+}
+
+db.run(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
@@ -70,8 +75,6 @@ if (files.length === 0) {
 
 console.log(`Found ${files.length} tracks. Uploading to B2...`);
 
-const insert = db.prepare("INSERT OR IGNORE INTO songs (title, artist, album, r2_key) VALUES (?, ?, ?, ?)");
-
 for (const file of files) {
   const fileName = path.basename(file, ".mp3");
   const parts = fileName.split(" - ");
@@ -99,12 +102,13 @@ for (const file of files) {
     );
     console.log(`  Uploaded to B2`);
 
-    insert.run(title, artist, "", b2Key);
+    db.run("INSERT OR IGNORE INTO songs (title, artist, album, r2_key) VALUES (?, ?, ?, ?)", [title, artist, "", b2Key]);
     console.log(`  Inserted into DB`);
-  } catch (err: any) {
+  } catch (err) {
     console.error(`  Failed: ${err.message}`);
   }
 }
 
+const data = db.export();
+fs.writeFileSync(DB_PATH, Buffer.from(data));
 console.log(`Done! ${files.length} tracks processed.`);
-db.close();

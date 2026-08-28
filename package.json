@@ -17,8 +17,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.4.0",
+    "@types/sql.js": "^1.4.11",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2"
   },
@@ -26,10 +26,7 @@
     "@aws-sdk/client-s3": "^3.1120.0",
     "@aws-sdk/s3-request-presigner": "^3.1120.0",
     "@hono/node-server": "^2.1.1",
-    "better-sqlite3": "^13.0.3",
-    "hono": "^4.13.5"
-  },
-  "allowScripts": {
-    "better-sqlite3@13.0.3": true
+    "hono": "^4.13.5",
+    "sql.js": "^1.14.2"
   }
 }

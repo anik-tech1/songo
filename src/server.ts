@@ -8,31 +8,41 @@ import { jwt } from "hono/jwt";
 import { auth } from "./auth";
 import { songs } from "./songs";
 import { playlists } from "./playlists";
+import { initDb } from "./db";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
-const app = new Hono();
+async function main() {
+  await initDb();
 
-app.use("*", logger());
-app.use("*", cors());
+  const app = new Hono();
 
-app.get("/api/health", (c) => c.json({ status: "ok" }));
+  app.use("*", logger());
+  app.use("*", cors());
 
-app.route("/", auth);
+  app.get("/api/health", (c) => c.json({ status: "ok" }));
 
-app.use("/api/*", jwt({ secret: JWT_SECRET, alg: "HS256" }));
+  app.route("/", auth);
 
-app.get("/api/auth/me", async (c) => {
-  const payload = c.get("jwtPayload") as { userId: number; username: string };
-  return c.json({ userId: payload.userId, username: payload.username });
-});
+  app.use("/api/*", jwt({ secret: JWT_SECRET, alg: "HS256" }));
 
-app.route("/", songs);
-app.route("/", playlists);
+  app.get("/api/auth/me", async (c) => {
+    const payload = c.get("jwtPayload") as { userId: number; username: string };
+    return c.json({ userId: payload.userId, username: payload.username });
+  });
 
-app.use("/*", serveStatic({ root: "./public" }));
+  app.route("/", songs);
+  app.route("/", playlists);
 
-serve({ fetch: app.fetch, port: PORT }, (info) => {
-  console.log(`SonGO running at http://localhost:${info.port}`);
+  app.use("/*", serveStatic({ root: "./public" }));
+
+  serve({ fetch: app.fetch, port: PORT }, (info) => {
+    console.log(`SonGO running at http://localhost:${info.port}`);
+  });
+}
+
+main().catch((err) => {
+  console.error("Failed to start:", err);
+  process.exit(1);
 });

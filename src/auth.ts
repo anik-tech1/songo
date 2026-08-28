@@ -8,11 +8,17 @@ auth.post("/api/auth/login", async (c) => {
   const { username, password } = await c.req.json<{ username: string; password: string }>();
   const db = getDb();
 
-  const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as
-    | { id: number; username: string; password_hash: string }
-    | undefined;
+  const rows = db.exec("SELECT * FROM users WHERE username = ?", [username]);
+  if (rows.length === 0 || rows[0].values.length === 0) {
+    return c.json({ error: "Invalid credentials" }, 401);
+  }
 
-  if (!user || user.password_hash !== password) {
+  const cols = rows[0].columns;
+  const vals = rows[0].values[0];
+  const user: Record<string, any> = {};
+  cols.forEach((col: string, i: number) => (user[col] = vals[i]));
+
+  if (user.password_hash !== password) {
     return c.json({ error: "Invalid credentials" }, 401);
   }
 
