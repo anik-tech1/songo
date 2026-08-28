@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand, ListObjectsCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const B2 = new S3Client({
@@ -45,13 +45,14 @@ export { B2, BUCKET };
 
 export async function listB2Tracks(): Promise<string[]> {
   const keys: string[] = [];
-  let continuationToken: string | undefined;
+  let marker = "";
 
   do {
-    const command = new ListObjectsV2Command({
+    const command = new ListObjectsCommand({
       Bucket: BUCKET,
       Prefix: "tracks/",
-      ContinuationToken: continuationToken,
+      Marker: marker,
+      MaxKeys: 1000,
     });
     const response = await B2.send(command);
     if (response.Contents) {
@@ -59,8 +60,12 @@ export async function listB2Tracks(): Promise<string[]> {
         if (obj.Key) keys.push(obj.Key);
       }
     }
-    continuationToken = response.NextContinuationToken;
-  } while (continuationToken);
+    if (response.IsTruncated && response.Contents && response.Contents.length > 0) {
+      marker = response.Contents[response.Contents.length - 1].Key!;
+    } else {
+      break;
+    }
+  } while (true);
 
   return keys;
 }
