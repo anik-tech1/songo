@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 
+import "dotenv/config";
 import initSqlJs from "sql.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "node:fs";
 import path from "node:path";
 
 const B2 = new S3Client({
-  region: process.env.B2_REGION || "us-west-004",
-  endpoint: `https://s3.${process.env.B2_REGION || "us-west-004"}.backblazeb2.com`,
+  region: "eu-central-003",
+  endpoint: "https://s3.eu-central-003.backblazeb2.com",
+  forcePathStyle: true,
   credentials: {
-    accessKeyId: process.env.B2_KEY_ID || "",
-    secretAccessKey: process.env.B2_APP_KEY || "",
+    accessKeyId: (process.env.B2_KEY_ID || "").trim(),
+    secretAccessKey: (process.env.B2_APP_KEY || "").trim(),
   },
 });
 
@@ -92,6 +94,12 @@ for (const file of files) {
   console.log(`Uploading: ${artist} - ${title}`);
 
   try {
+    const existing = db.exec("SELECT id FROM songs WHERE r2_key = ?", [b2Key]);
+    if (existing.length > 0 && existing[0].values.length > 0) {
+      console.log(`  Already in DB, skipping`);
+      continue;
+    }
+
     await B2.send(
       new PutObjectCommand({
         Bucket: BUCKET,
@@ -103,6 +111,8 @@ for (const file of files) {
     console.log(`  Uploaded to B2`);
 
     db.run("INSERT OR IGNORE INTO songs (title, artist, album, r2_key) VALUES (?, ?, ?, ?)", [title, artist, "", b2Key]);
+    const data = db.export();
+    fs.writeFileSync(DB_PATH, Buffer.from(data));
     console.log(`  Inserted into DB`);
   } catch (err) {
     console.error(`  Failed: ${err.message}`);
