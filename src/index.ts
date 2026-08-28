@@ -55,10 +55,11 @@ app.route("/", playlists);
 let initDone = false;
 
 async function initialize(env: Env) {
-  if (initDone) return;
-  await ensureSchema(env);
-  await seedDefaultUser(env);
-  initDone = true;
+  if (!initDone) {
+    await ensureSchema(env);
+    await seedDefaultUser(env);
+    initDone = true;
+  }
   seedFromB2(env).catch((e) => console.error("B2 seed error:", e));
 }
 

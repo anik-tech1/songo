@@ -1,17 +1,14 @@
 import type { Env } from "./types";
 
 export async function ensureSchema(env: Env) {
-  await env.DB.exec(`
-    CREATE TABLE IF NOT EXISTS users (
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  await env.DB.exec(`
-    CREATE TABLE IF NOT EXISTS songs (
+    )`,
+    `CREATE TABLE IF NOT EXISTS songs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       artist TEXT NOT NULL,
@@ -20,50 +17,42 @@ export async function ensureSchema(env: Env) {
       r2_key TEXT NOT NULL,
       cover_key TEXT DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  await env.DB.exec(`
-    CREATE TABLE IF NOT EXISTS playlists (
+    )`,
+    `CREATE TABLE IF NOT EXISTS playlists (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       name TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )
-  `);
-
-  await env.DB.exec(`
-    CREATE TABLE IF NOT EXISTS playlist_songs (
+    )`,
+    `CREATE TABLE IF NOT EXISTS playlist_songs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       playlist_id INTEGER NOT NULL,
       song_id INTEGER NOT NULL,
       position INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
       FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
-    )
-  `);
+    )`,
+  ];
+
+  for (const sql of statements) {
+    await env.DB.prepare(sql).run();
+  }
 }
 
 export async function seedDefaultUser(env: Env) {
   const existing = await env.DB.prepare("SELECT id FROM users WHERE username = ?").bind("admin").first();
-  if (!existing) {
-    await env.DB.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").bind("admin", "password").run();
-    console.log("Created default user: admin");
-  }
+  if (existing) return;
+
+  await env.DB.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").bind("admin", "password").run();
 }
 
 export async function seedFromB2(env: Env) {
   const { listB2Tracks } = await import("./storage");
   const existing = await env.DB.prepare("SELECT count(*) as c FROM songs").first<{ c: number }>();
-  if (existing && existing.c > 0) {
-    console.log(`DB has ${existing.c} songs, skipping seed.`);
-    return;
-  }
+  if (existing && existing.c > 0) return;
 
-  console.log("Seeding from B2...");
   const keys = await listB2Tracks(env);
-  console.log(`Found ${keys.length} tracks in B2.`);
 
   const stmt = env.DB.prepare("INSERT OR IGNORE INTO songs (title, artist, album, r2_key) VALUES (?, ?, ?, ?)");
   const batch = keys.map((key) => {
@@ -79,5 +68,4 @@ export async function seedFromB2(env: Env) {
   });
 
   await env.DB.batch(batch);
-  console.log(`Seeded ${keys.length} songs.`);
 }
