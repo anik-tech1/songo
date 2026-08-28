@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SonGO - Music Stream</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="auth-screen">
+      <div class="auth-container">
+        <h1>SonGO</h1>
+        <p>Private Music Stream</p>
+        <form id="login-form">
+          <input type="text" id="username" placeholder="Username" required>
+          <input type="password" id="password" placeholder="Password" required>
+          <button type="submit">Login</button>
+        </form>
+        <p id="auth-error" class="error"></p>
+      </div>
+    </div>
+
+    <div id="main-screen" class="hidden">
+      <header>
+        <h1>SonGO</h1>
+        <div class="header-actions">
+          <button id="create-playlist-btn">New Playlist</button>
+          <button id="logout-btn">Logout</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <aside id="sidebar">
+          <h3>Library</h3>
+          <ul id="nav">
+            <li class="active" data-view="tracks">All Tracks</li>
+          </ul>
+          <h3>Playlists</h3>
+          <ul id="playlist-nav"></ul>
+        </aside>
+
+        <main id="track-view">
+          <h2>All Tracks</h2>
+          <table id="track-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Artist</th>
+                <th>Album</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="track-list"></tbody>
+          </table>
+        </main>
+
+        <main id="playlist-view" class="hidden">
+          <h2 id="playlist-title">Playlist</h2>
+          <table id="playlist-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Artist</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="playlist-tracks"></tbody>
+          </table>
+        </main>
+      </div>
+
+      <div id="player-bar">
+        <div class="player-track-info">
+          <span id="player-title">No track selected</span>
+          <span id="player-artist"></span>
+        </div>
+        <div class="player-controls">
+          <button id="shuffle-btn" title="Shuffle">&#x1F500;</button>
+          <button id="prev-btn" title="Previous">&#x23EE;</button>
+          <button id="play-btn" title="Play/Pause">&#x25B6;</button>
+          <button id="next-btn" title="Next">&#x23ED;</button>
+          <button id="repeat-btn" title="Repeat">&#x1F501;</button>
+        </div>
+        <div class="player-progress">
+          <span id="current-time">0:00</span>
+          <input type="range" id="progress-bar" min="0" max="100" value="0" step="0.1">
+          <span id="duration">0:00</span>
+        </div>
+        <div class="player-extras">
+          <input type="range" id="volume-bar" min="0" max="1" step="0.01" value="1">
+          <button id="download-btn" title="Download">&#x2B07;</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="create-playlist-modal" class="hidden">
+      <div class="modal-content">
+        <h3>New Playlist</h3>
+        <input type="text" id="playlist-name-input" placeholder="Playlist name">
+        <div class="modal-actions">
+          <button id="modal-cancel">Cancel</button>
+          <button id="modal-create">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio-player"></audio>
+  <script src="/app.js"></script>
+</body>
+</html>

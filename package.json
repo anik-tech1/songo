@@ -1,0 +1,35 @@
+{
+  "name": "songo",
+  "version": "1.0.0",
+  "description": "Private music streaming app",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "create-user": "node scripts/create-user.mjs",
+    "upload-tracks": "node scripts/upload-tracks.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.4.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1120.0",
+    "@aws-sdk/s3-request-presigner": "^3.1120.0",
+    "@hono/node-server": "^2.1.1",
+    "better-sqlite3": "^13.0.3",
+    "hono": "^4.13.5"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true
+  }
+}

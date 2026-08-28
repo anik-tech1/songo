@@ -1,0 +1,31 @@
+{
+	"name": "songo",
+	"main": "src/index.ts",
+	"compatibility_date": "2024-12-01",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "songo-db",
+			"database_id": "2c0e7d70-33c2-44e6-9384-9b0d60a09b6c"
+		},
+		{
+			"binding": "songo_db",
+			"database_name": "songo-db",
+			"database_id": "2c0e7d70-33c2-44e6-9384-9b0d60a09b6c",
+			"remote": true
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "MUSIC_BUCKET",
+			"bucket_name": "songo-music"
+		}
+	],
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS"
+	}
+}
