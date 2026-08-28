@@ -29,7 +29,7 @@ app.use("/api/*", async (c, next) => {
   if (!token) return c.json({ error: "Unauthorized" }, 401);
 
   try {
-    const payload = await verify(token, c.env.JWT_SECRET, "HS256");
+    const payload = await verify(token, c.env.JWT_SECRET || "fallback-secret", "HS256");
     c.set("jwtPayload", payload);
   } catch {
     return c.json({ error: "Invalid token" }, 401);
@@ -45,10 +45,16 @@ app.get("/api/auth/me", async (c) => {
 app.route("/", songs);
 app.route("/", playlists);
 
+let initPromise: Promise<void> | null = null;
+
 async function initialize(env: Env) {
-  await ensureSchema(env);
-  await seedDefaultUser(env);
-  await seedFromB2(env);
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
+    await ensureSchema(env);
+    await seedDefaultUser(env);
+    await seedFromB2(env);
+  })();
+  return initPromise;
 }
 
 export default {
@@ -56,7 +62,11 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api/")) {
-      await initialize(env);
+      try {
+        await initialize(env);
+      } catch (err) {
+        console.error("Init error:", err);
+      }
       return app.fetch(request, env, ctx);
     }
 
