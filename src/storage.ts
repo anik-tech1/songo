@@ -2,11 +2,11 @@ import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from 
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const B2 = new S3Client({
-  region: process.env.B2_REGION || "us-west-004",
-  endpoint: `https://s3.${process.env.B2_REGION || "us-west-004"}.backblazeb2.com`,
+  region: "us-west-004",
+  endpoint: "https://s3.us-west-004.backblazeb2.com",
   credentials: {
-    accessKeyId: process.env.B2_KEY_ID || "",
-    secretAccessKey: process.env.B2_APP_KEY || "",
+    accessKeyId: (process.env.B2_KEY_ID || "").trim(),
+    secretAccessKey: (process.env.B2_APP_KEY || "").trim(),
   },
 });
 

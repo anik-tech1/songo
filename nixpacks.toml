@@ -1,0 +1,3 @@
+# https://nixpacks.com/docs/configuration/providers
+[phases.setup]
+nixPkgs = ["nodejs_20"]

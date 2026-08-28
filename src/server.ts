@@ -1,3 +1,8 @@
+import crypto from "node:crypto";
+if (typeof globalThis.crypto === "undefined") {
+  (globalThis as any).crypto = crypto;
+}
+
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
