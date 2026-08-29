@@ -286,6 +286,12 @@ async function loadPlaylist(id, name) {
 
   $$("#sidebar li").forEach((li) => li.classList.remove("active"));
 
+  if ($("#sidebar").classList.contains("open")) {
+    $("#sidebar").classList.remove("open");
+    $("#sidebar-overlay").classList.remove("open");
+    $("#hamburger-btn").classList.remove("open");
+  }
+
   const res = await fetch(`${API}/api/playlists/${id}/tracks`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -514,6 +520,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  function closeSidebar() {
+    $("#sidebar").classList.remove("open");
+    $("#sidebar-overlay").classList.remove("open");
+    $("#hamburger-btn").classList.remove("open");
+  }
+
+  $("#hamburger-btn").addEventListener("click", () => {
+    const isOpen = $("#sidebar").classList.toggle("open");
+    $("#sidebar-overlay").classList.toggle("open", isOpen);
+    $("#hamburger-btn").classList.toggle("open", isOpen);
+  });
+
+  $("#sidebar-overlay").addEventListener("click", closeSidebar);
+
   $$("#sidebar li").forEach((li) => {
     li.addEventListener("click", () => {
       $$("#sidebar li").forEach((l) => l.classList.remove("active"));
@@ -521,6 +541,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       $("#track-view").classList.remove("hidden");
       $("#playlist-view").classList.add("hidden");
       currentPlaylistId = null;
+      closeSidebar();
     });
   });
 });
