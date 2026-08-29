@@ -63,7 +63,7 @@ playlists.get("/api/playlists/:id/tracks", async (c) => {
 playlists.post("/api/playlists/:id/add", async (c) => {
   const payload = c.get("jwtPayload") as { userId: number };
   const id = Number(c.req.param("id"));
-  const { songId } = await c.req.json<{ songId: number }>();
+  const { songIds } = await c.req.json<{ songIds: number[] }>();
 
   const playlist = await c.env.DB.prepare("SELECT * FROM playlists WHERE id = ? AND user_id = ?")
     .bind(id, payload.userId)
@@ -74,13 +74,13 @@ playlists.post("/api/playlists/:id/add", async (c) => {
     .bind(id)
     .first<{ maxPos: number | null }>();
 
-  const position = (maxResult?.maxPos ?? -1) + 1;
+  let position = (maxResult?.maxPos ?? -1) + 1;
 
-  await c.env.DB.prepare("INSERT INTO playlist_songs (playlist_id, song_id, position) VALUES (?, ?, ?)")
-    .bind(id, songId, position)
-    .run();
+  const stmt = c.env.DB.prepare("INSERT INTO playlist_songs (playlist_id, song_id, position) VALUES (?, ?, ?)");
+  const batch = songIds.map((songId) => stmt.bind(id, songId, position++));
+  await c.env.DB.batch(batch);
 
-  return c.json({ success: true, position });
+  return c.json({ success: true, added: songIds.length });
 });
 
 playlists.delete("/api/playlists/:id/remove/:songId", async (c) => {

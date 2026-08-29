@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SonGO - Music Stream</title>
-  <link rel="stylesheet" href="/style.css?v=2">
+  <link rel="stylesheet" href="/style.css?v=4">
 </head>
 <body>
   <div id="app">
@@ -41,10 +41,16 @@
         </aside>
 
         <main id="track-view">
-          <h2>All Tracks</h2>
+          <div class="track-header">
+            <h2>All Tracks</h2>
+            <div class="track-header-actions">
+              <button id="select-all-btn" class="text-btn">Select All</button>
+            </div>
+          </div>
           <table id="track-table">
             <thead>
               <tr>
+                <th><input type="checkbox" id="select-all-checkbox"></th>
                 <th>#</th>
                 <th>Title</th>
                 <th>Artist</th>
@@ -54,6 +60,11 @@
             </thead>
             <tbody id="track-list"></tbody>
           </table>
+          <div id="bulk-bar" class="hidden">
+            <span id="bulk-count">0 selected</span>
+            <button id="bulk-add-btn" class="accent-btn">Add to Playlist</button>
+            <button id="bulk-clear-btn" class="text-btn">Clear</button>
+          </div>
         </main>
 
         <main id="playlist-view" class="hidden">
@@ -125,6 +136,6 @@
   </div>
 
   <audio id="audio-player"></audio>
-  <script src="/app.js?v=3"></script>
+  <script src="/app.js?v=4"></script>
 </body>
 </html>

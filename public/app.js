@@ -8,6 +8,7 @@ let isShuffled = false;
 let repeatMode = 0;
 let currentPlaylistId = null;
 let currentPlaylistTracks = [];
+let selectedSongIds = new Set();
 
 const audio = document.getElementById("audio-player");
 const $ = (s) => document.querySelector(s);
@@ -17,6 +18,10 @@ function esc(s) {
   const div = document.createElement("div");
   div.textContent = s || "";
   return div.innerHTML;
+}
+
+function escAttr(s) {
+  return (s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
 }
 
 async function login(username, password) {
@@ -61,19 +66,67 @@ function renderTracks() {
   const tbody = $("#track-list");
   tbody.innerHTML = allTracks
     .map(
-      (t, i) => `<tr>
+      (t, i) => `<tr class="${selectedSongIds.has(t.id) ? "selected" : ""}">
+      <td><input type="checkbox" class="track-checkbox" data-id="${t.id}" ${selectedSongIds.has(t.id) ? "checked" : ""}></td>
       <td>${i + 1}</td>
       <td>${esc(t.title)}</td>
       <td>${esc(t.artist)}</td>
       <td>${esc(t.album)}</td>
       <td class="track-actions">
         <button onclick="playTrack(${t.id})" title="Play">&#x25B6;</button>
-        <button onclick="downloadTrack(${t.id}, '${esc(t.title)}')" title="Download">&#x2B07;</button>
-        <button onclick="showAddToPlaylistModal(${t.id})" title="Add to playlist">+</button>
+        <button onclick="downloadTrack(${t.id}, '${escAttr(t.title)}')" title="Download">&#x2B07;</button>
+        <button onclick="showAddToPlaylistModal([${t.id}])" title="Add to playlist">+</button>
       </td>
     </tr>`
     )
     .join("");
+
+  $$(".track-checkbox").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      const id = Number(cb.dataset.id);
+      if (cb.checked) selectedSongIds.add(id);
+      else selectedSongIds.delete(id);
+      cb.closest("tr").classList.toggle("selected", cb.checked);
+      const selectAllCb = $("#select-all-checkbox");
+      if (selectAllCb) {
+        selectAllCb.checked = allTracks.length > 0 && allTracks.every((t) => selectedSongIds.has(t.id));
+      }
+      updateBulkBar();
+    });
+  });
+
+  const selectAllCb = $("#select-all-checkbox");
+  if (selectAllCb) {
+    selectAllCb.checked = allTracks.length > 0 && allTracks.every((t) => selectedSongIds.has(t.id));
+  }
+
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = $("#bulk-bar");
+  const count = selectedSongIds.size;
+  if (count > 0) {
+    bar.classList.remove("hidden");
+    $("#bulk-count").textContent = `${count} selected`;
+  } else {
+    bar.classList.add("hidden");
+  }
+}
+
+function toggleSelectAll() {
+  const allChecked = allTracks.every((t) => selectedSongIds.has(t.id));
+  if (allChecked) {
+    selectedSongIds.clear();
+  } else {
+    allTracks.forEach((t) => selectedSongIds.add(t.id));
+  }
+  renderTracks();
+}
+
+function clearSelection() {
+  selectedSongIds.clear();
+  renderTracks();
 }
 
 function playTrack(id) {
@@ -206,7 +259,7 @@ function renderPlaylistNav(playlists) {
   nav.innerHTML = playlists
     .map(
       (p) =>
-        `<li onclick="loadPlaylist(${p.id}, '${esc(p.name)}')">${esc(p.name)}</li>`
+        `<li onclick="loadPlaylist(${p.id}, '${escAttr(p.name)}')">${esc(p.name)}</li>`
     )
     .join("");
 }
@@ -258,14 +311,14 @@ function renderPlaylistTracks() {
     .join("");
 }
 
-async function addToPlaylist(playlistId, songId) {
+async function addToPlaylist(playlistId, songIds) {
   await fetch(`${API}/api/playlists/${playlistId}/add`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ songId }),
+    body: JSON.stringify({ songIds }),
   });
 }
 
@@ -289,10 +342,14 @@ async function deletePlaylist(id) {
   fetchPlaylists();
 }
 
-let pendingSongId = null;
+let addMode = "single";
 
-async function showAddToPlaylistModal(songId) {
-  pendingSongId = songId;
+async function showAddToPlaylistModal(songIds) {
+  addMode = Array.isArray(songIds) ? "bulk" : "single";
+  if (addMode === "single") songIds = [songIds];
+
+  window._addSongIds = songIds;
+
   const res = await fetch(`${API}/api/playlists`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -300,16 +357,22 @@ async function showAddToPlaylistModal(songId) {
   const playlists = data.playlists || [];
 
   const list = $("#playlist-select-list");
-  list.innerHTML = playlists.map(
-    (p) => `<li onclick="addSongToPlaylist(${p.id}, '${esc(p.name)}')">${esc(p.name)}</li>`
-  ).join("") || '<li style="color:var(--text-muted)">No playlists yet. Create one first.</li>';
+  list.innerHTML = playlists
+    .map(
+      (p) =>
+        `<li data-id="${p.id}">${esc(p.name)}</li>`
+    )
+    .join("") || '<li style="color:var(--text-muted)">No playlists yet. Create one first.</li>';
+
+  $$("#playlist-select-list li[data-id]").forEach((li) => {
+    li.addEventListener("click", async () => {
+      const playlistId = Number(li.dataset.id);
+      await addToPlaylist(playlistId, window._addSongIds);
+      $("#add-to-playlist-modal").classList.add("hidden");
+    });
+  });
 
   $("#add-to-playlist-modal").classList.remove("hidden");
-}
-
-function addSongToPlaylist(playlistId, name) {
-  addToPlaylist(playlistId, pendingSongId);
-  $("#add-to-playlist-modal").classList.add("hidden");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -391,6 +454,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       $("#create-playlist-modal").classList.add("hidden");
     }
   });
+
+  $("#select-all-btn").addEventListener("click", toggleSelectAll);
+  $("#select-all-checkbox").addEventListener("change", toggleSelectAll);
+  $("#bulk-add-btn").addEventListener("click", () => {
+    showAddToPlaylistModal([...selectedSongIds]);
+  });
+  $("#bulk-clear-btn").addEventListener("click", clearSelection);
 
   $$("#sidebar li").forEach((li) => {
     li.addEventListener("click", () => {
