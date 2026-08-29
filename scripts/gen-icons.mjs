@@ -14,7 +14,7 @@ function createPNG(size) {
       const radius = canvas * 0.42;
 
       if (dist < radius) {
-        data.push(29, 185, 84, 255);
+        data.push(108, 92, 231, 255);
       } else {
         data.push(10, 10, 10, 255);
       }
