@@ -311,8 +311,8 @@ function renderPlaylistTracks() {
     .join("");
 }
 
-async function addToPlaylist(playlistId, songIds) {
-  await fetch(`${API}/api/playlists/${playlistId}/add`, {
+async function addSongsToPlaylist(playlistId, songIds) {
+  const res = await fetch(`${API}/api/playlists/${playlistId}/add`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -320,6 +320,7 @@ async function addToPlaylist(playlistId, songIds) {
     },
     body: JSON.stringify({ songIds }),
   });
+  return res.json();
 }
 
 async function removeFromPlaylist(playlistId, songId) {
@@ -342,14 +343,17 @@ async function deletePlaylist(id) {
   fetchPlaylists();
 }
 
-let addMode = "single";
-
 async function showAddToPlaylistModal(songIds) {
-  addMode = Array.isArray(songIds) ? "bulk" : "single";
-  if (addMode === "single") songIds = [songIds];
+  window._addSongIds = Array.isArray(songIds) ? songIds : [songIds];
 
-  window._addSongIds = songIds;
+  await refreshPlaylistList();
 
+  const count = window._addSongIds.length;
+  $("#add-to-playlist-modal-title").textContent = `Add ${count} song${count > 1 ? "s" : ""} to Playlist`;
+  $("#add-to-playlist-modal").classList.remove("hidden");
+}
+
+async function refreshPlaylistList() {
   const res = await fetch(`${API}/api/playlists`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -362,17 +366,33 @@ async function showAddToPlaylistModal(songIds) {
       (p) =>
         `<li data-id="${p.id}">${esc(p.name)}</li>`
     )
-    .join("") || '<li style="color:var(--text-muted)">No playlists yet. Create one first.</li>';
+    .join("");
 
   $$("#playlist-select-list li[data-id]").forEach((li) => {
     li.addEventListener("click", async () => {
       const playlistId = Number(li.dataset.id);
-      await addToPlaylist(playlistId, window._addSongIds);
-      $("#add-to-playlist-modal").classList.add("hidden");
+      const result = await addSongsToPlaylist(playlistId, window._addSongIds);
+      if (result.success) {
+        showToast(`Added ${window._addSongIds.length} song(s) to playlist`);
+        $("#add-to-playlist-modal").classList.add("hidden");
+      } else {
+        showToast("Failed to add songs", true);
+      }
     });
   });
+}
 
-  $("#add-to-playlist-modal").classList.remove("hidden");
+function showToast(msg, isError) {
+  let toast = $("#toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "toast";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.className = isError ? "toast toast-error" : "toast toast-success";
+  toast.classList.remove("hidden");
+  setTimeout(() => toast.classList.add("hidden"), 2500);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -449,9 +469,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#modal-create").addEventListener("click", async () => {
     const name = $("#playlist-name-input").value.trim();
     if (name) {
-      await createPlaylist(name);
+      const playlist = await createPlaylist(name);
       $("#playlist-name-input").value = "";
       $("#create-playlist-modal").classList.add("hidden");
+      if (window._addSongIds && playlist) {
+        await addSongsToPlaylist(playlist.id, window._addSongIds);
+        showToast(`Created "${name}" and added ${window._addSongIds.length} song(s)`);
+        window._addSongIds = null;
+        $("#add-to-playlist-modal").classList.add("hidden");
+      }
     }
   });
 
@@ -461,6 +487,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     showAddToPlaylistModal([...selectedSongIds]);
   });
   $("#bulk-clear-btn").addEventListener("click", clearSelection);
+
+  $("#inline-create-btn").addEventListener("click", async () => {
+    const name = $("#inline-playlist-name").value.trim();
+    if (!name) return;
+    const playlist = await createPlaylist(name);
+    $("#inline-playlist-name").value = "";
+    if (window._addSongIds && playlist) {
+      await addSongsToPlaylist(playlist.id, window._addSongIds);
+      showToast(`Created "${name}" and added ${window._addSongIds.length} song(s)`);
+      window._addSongIds = null;
+      $("#add-to-playlist-modal").classList.add("hidden");
+    }
+    await refreshPlaylistList();
+  });
 
   $$("#sidebar li").forEach((li) => {
     li.addEventListener("click", () => {

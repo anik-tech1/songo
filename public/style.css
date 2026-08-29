@@ -388,6 +388,39 @@ tbody tr.selected { background: rgba(29, 185, 84, 0.1); }
 
 .playlist-select-list li:hover { background: var(--surface-hover); }
 
+.modal-create-inline {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.modal-create-inline input {
+  flex: 1;
+  padding: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+#toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  z-index: 200;
+  transition: opacity 0.3s;
+}
+
+.toast-success { background: var(--accent); color: #000; }
+.toast-error { background: #e74c3c; color: #fff; }
+
 /* Modal */
 #create-playlist-modal {
   position: fixed;

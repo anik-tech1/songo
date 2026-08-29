@@ -115,8 +115,12 @@
 
     <div id="add-to-playlist-modal" class="hidden">
       <div class="modal-content">
-        <h3>Add to Playlist</h3>
+        <h3 id="add-to-playlist-modal-title">Add to Playlist</h3>
         <ul id="playlist-select-list" class="playlist-select-list"></ul>
+        <div class="modal-create-inline">
+          <input type="text" id="inline-playlist-name" placeholder="Or create new playlist...">
+          <button id="inline-create-btn" class="accent-btn">Create</button>
+        </div>
         <div class="modal-actions">
           <button id="add-to-playlist-modal-cancel">Cancel</button>
         </div>
