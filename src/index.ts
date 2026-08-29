@@ -47,10 +47,13 @@ let initDone = false;
 
 async function initialize(env: Env) {
   if (initDone) return;
-  initDone = true;
   await ensureSchema(env);
   await seedDefaultUser(env);
-  await seedFromB2(env);
+  const { count } = await env.DB.prepare("SELECT count(*) as count FROM songs").first<{ count: number }>() ?? { count: 0 };
+  if (count === 0) {
+    await seedFromB2(env);
+  }
+  initDone = true;
 }
 
 export default {

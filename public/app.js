@@ -13,6 +13,12 @@ const audio = document.getElementById("audio-player");
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
+function esc(s) {
+  const div = document.createElement("div");
+  div.textContent = s || "";
+  return div.innerHTML;
+}
+
 async function login(username, password) {
   const res = await fetch(`${API}/api/auth/login`, {
     method: "POST",
@@ -39,12 +45,16 @@ async function checkAuth() {
 }
 
 async function fetchTracks() {
-  const res = await fetch(`${API}/api/songs`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await res.json();
-  allTracks = data.songs || [];
-  renderTracks();
+  try {
+    const res = await fetch(`${API}/api/songs`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    allTracks = data.songs || [];
+    renderTracks();
+  } catch (err) {
+    console.error("fetchTracks error:", err);
+  }
 }
 
 function renderTracks() {
