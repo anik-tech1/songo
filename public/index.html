@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SonGO - Music Stream</title>
-  <link rel="stylesheet" href="/style.css?v=4">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1db954">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SonGO">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/style.css?v=5">
 </head>
 <body>
   <div id="app">
@@ -140,6 +146,11 @@
   </div>
 
   <audio id="audio-player"></audio>
-  <script src="/app.js?v=4"></script>
+  <script src="/app.js?v=5"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js");
+    }
+  </script>
 </body>
 </html>
