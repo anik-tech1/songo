@@ -66,13 +66,13 @@ function renderTracks() {
   const tbody = $("#track-list");
   tbody.innerHTML = allTracks
     .map(
-      (t, i) => `<tr class="${selectedSongIds.has(t.id) ? "selected" : ""}">
-      <td><input type="checkbox" class="track-checkbox" data-id="${t.id}" ${selectedSongIds.has(t.id) ? "checked" : ""}></td>
+      (t, i) => `<tr class="${selectedSongIds.has(t.id) ? "selected" : ""}" onclick="playTrack(${t.id})" style="cursor:pointer">
+      <td><input type="checkbox" class="track-checkbox" data-id="${t.id}" ${selectedSongIds.has(t.id) ? "checked" : ""} onclick="event.stopPropagation()"></td>
       <td>${i + 1}</td>
       <td>${esc(t.title)}</td>
       <td>${esc(t.artist)}</td>
       <td>${esc(t.album)}</td>
-      <td class="track-actions">
+      <td class="track-actions" onclick="event.stopPropagation()">
         <button onclick="playTrack(${t.id})" title="Play">&#x25B6;</button>
         <button onclick="downloadTrack(${t.id}, '${escAttr(t.title)}')" title="Download">&#x2B07;</button>
         <button onclick="showAddToPlaylistModal([${t.id}])" title="Add to playlist">+</button>

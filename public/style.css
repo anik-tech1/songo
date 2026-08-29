@@ -621,6 +621,7 @@ tbody tr.selected { background: rgba(29, 185, 84, 0.1); }
     padding: 0.6rem 0.4rem;
     border-bottom: 1px solid var(--border);
     align-items: center;
+    position: relative;
   }
 
   tbody td {
@@ -630,6 +631,7 @@ tbody tr.selected { background: rgba(29, 185, 84, 0.1); }
     overflow: hidden;
     text-overflow: ellipsis;
     border: none;
+    pointer-events: none;
   }
 
   tbody td:nth-child(1),
@@ -653,6 +655,7 @@ tbody tr.selected { background: rgba(29, 185, 84, 0.1); }
     grid-column: 2;
     grid-row: 1 / 3;
     align-self: center;
+    pointer-events: auto;
   }
 
   .track-actions {
