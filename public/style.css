@@ -422,7 +422,8 @@ tbody tr.selected { background: rgba(29, 185, 84, 0.1); }
 .toast-error { background: #e74c3c; color: #fff; }
 
 /* Modal */
-#create-playlist-modal {
+#create-playlist-modal,
+#add-to-playlist-modal {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.7);

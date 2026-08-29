@@ -343,43 +343,56 @@ async function deletePlaylist(id) {
   fetchPlaylists();
 }
 
-async function showAddToPlaylistModal(songIds) {
+function showAddToPlaylistModal(songIds) {
   window._addSongIds = Array.isArray(songIds) ? songIds : [songIds];
-
-  await refreshPlaylistList();
 
   const count = window._addSongIds.length;
   $("#add-to-playlist-modal-title").textContent = `Add ${count} song${count > 1 ? "s" : ""} to Playlist`;
+  $("#playlist-select-list").innerHTML = '<li style="color:var(--text-muted)">Loading...</li>';
   $("#add-to-playlist-modal").classList.remove("hidden");
-}
 
-async function refreshPlaylistList() {
-  const res = await fetch(`${API}/api/playlists`, {
+  fetch(`${API}/api/playlists`, {
     headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await res.json();
-  const playlists = data.playlists || [];
+  })
+    .then((r) => r.json())
+    .then((data) => {
+      const playlists = data.playlists || [];
+      const list = $("#playlist-select-list");
 
-  const list = $("#playlist-select-list");
-  list.innerHTML = playlists
-    .map(
-      (p) =>
-        `<li data-id="${p.id}">${esc(p.name)}</li>`
-    )
-    .join("");
-
-  $$("#playlist-select-list li[data-id]").forEach((li) => {
-    li.addEventListener("click", async () => {
-      const playlistId = Number(li.dataset.id);
-      const result = await addSongsToPlaylist(playlistId, window._addSongIds);
-      if (result.success) {
-        showToast(`Added ${window._addSongIds.length} song(s) to playlist`);
-        $("#add-to-playlist-modal").classList.add("hidden");
-      } else {
-        showToast("Failed to add songs", true);
+      if (playlists.length === 0) {
+        list.innerHTML = '<li style="color:var(--text-muted)">No playlists yet. Create one below.</li>';
+        return;
       }
+
+      list.innerHTML = playlists
+        .map((p) => `<li data-id="${p.id}">${esc(p.name)}</li>`)
+        .join("");
+
+      list.querySelectorAll("li[data-id]").forEach((li) => {
+        li.addEventListener("click", async () => {
+          const playlistId = Number(li.dataset.id);
+          const res = await fetch(`${API}/api/playlists/${playlistId}/add`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ songIds: window._addSongIds }),
+          });
+          const result = await res.json();
+          if (result.success) {
+            showToast(`Added ${window._addSongIds.length} song(s)`);
+            $("#add-to-playlist-modal").classList.add("hidden");
+          } else {
+            showToast("Failed to add", true);
+          }
+        });
+      });
+    })
+    .catch((err) => {
+      console.error("showAddToPlaylistModal error:", err);
+      showToast("Error loading playlists", true);
     });
-  });
 }
 
 function showToast(msg, isError) {
@@ -499,7 +512,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       window._addSongIds = null;
       $("#add-to-playlist-modal").classList.add("hidden");
     }
-    await refreshPlaylistList();
   });
 
   $$("#sidebar li").forEach((li) => {
