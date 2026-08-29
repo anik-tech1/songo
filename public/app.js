@@ -173,15 +173,26 @@ function loadAndPlay(track) {
   $("#player-artist").textContent = track.artist;
   $("#play-btn").innerHTML = "&#x23F8;";
   $("#download-btn").onclick = () => downloadTrack(track.id, track.title);
+
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title,
+      artist: track.artist,
+      album: track.album || "SonGO",
+      artwork: [{ src: "/icon-512.png", sizes: "512x512", type: "image/png" }],
+    });
+  }
 }
 
 function togglePlay() {
   if (audio.paused) {
     audio.play();
     $("#play-btn").innerHTML = "&#x23F8;";
+    if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
   } else {
     audio.pause();
     $("#play-btn").innerHTML = "&#x25B6;";
+    if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
   }
 }
 
@@ -462,6 +473,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       $("#play-btn").innerHTML = "&#x25B6;";
     }
   });
+
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.setActionHandler("play", () => { audio.play(); $("#play-btn").innerHTML = "&#x23F8;"; });
+    navigator.mediaSession.setActionHandler("pause", () => { audio.pause(); $("#play-btn").innerHTML = "&#x25B6;"; });
+    navigator.mediaSession.setActionHandler("previoustrack", playPrev);
+    navigator.mediaSession.setActionHandler("nexttrack", playNext);
+    navigator.mediaSession.setActionHandler("seekto", (e) => { if (e.seekTime != null) audio.currentTime = e.seekTime; });
+  }
 
   $("#progress-bar").addEventListener("input", (e) => {
     if (audio.duration) {
