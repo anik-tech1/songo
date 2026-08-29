@@ -47,13 +47,13 @@ let initDone = false;
 
 async function initialize(env: Env) {
   if (initDone) return;
+  initDone = true;
   await ensureSchema(env);
   await seedDefaultUser(env);
   const { count } = await env.DB.prepare("SELECT count(*) as count FROM songs").first<{ count: number }>() ?? { count: 0 };
   if (count === 0) {
     await seedFromB2(env);
   }
-  initDone = true;
 }
 
 export default {
@@ -61,10 +61,8 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api/")) {
-      try {
-        await initialize(env);
-      } catch (err) {
-        console.error("Init error:", err);
+      if (!initDone) {
+        ctx.waitUntil(initialize(env));
       }
       return app.fetch(request, env, ctx);
     }

@@ -1,49 +1,44 @@
 import type { Env } from "./types";
 
 export async function ensureSchema(env: Env) {
-  const statements = [
-    `CREATE TABLE IF NOT EXISTS users (
+  await env.DB.batch([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )`,
-    `CREATE TABLE IF NOT EXISTS songs (
+    )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS songs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       artist TEXT NOT NULL,
       album TEXT DEFAULT '',
       duration_seconds INTEGER DEFAULT 0,
-      r2_key TEXT NOT NULL,
+      r2_key TEXT NOT NULL UNIQUE,
       cover_key TEXT DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )`,
-    `CREATE TABLE IF NOT EXISTS playlists (
+    )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS playlists (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       name TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )`,
-    `CREATE TABLE IF NOT EXISTS playlist_songs (
+    )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS playlist_songs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       playlist_id INTEGER NOT NULL,
       song_id INTEGER NOT NULL,
       position INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
       FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
-    )`,
-  ];
-
-  for (const sql of statements) {
-    await env.DB.prepare(sql).run();
-  }
+    )`),
+  ]);
 }
 
 export async function seedDefaultUser(env: Env) {
   const existing = await env.DB.prepare("SELECT id FROM users WHERE username = ?").bind("admin").first();
   if (existing) return;
-
   await env.DB.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)").bind("admin", "password").run();
 }
 
@@ -53,7 +48,6 @@ export async function seedFromB2(env: Env) {
   if (existing && existing.c > 0) return;
 
   const keys = await listB2Tracks(env);
-
   const stmt = env.DB.prepare("INSERT OR IGNORE INTO songs (title, artist, album, r2_key) VALUES (?, ?, ?, ?)");
   const batch = keys.map((key) => {
     const fileName = key.replace("tracks/", "").replace(".mp3", "");
