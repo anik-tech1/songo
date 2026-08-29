@@ -106,6 +106,7 @@ header h1 { font-size: 1.2rem; }
   display: grid;
   grid-template-columns: 200px 1fr;
   overflow: hidden;
+  min-height: 0;
 }
 
 #sidebar {
@@ -208,17 +209,8 @@ tbody tr.selected { background: rgba(29, 185, 84, 0.1); }
 }
 
 #track-view {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#track-view .track-header { flex-shrink: 0; }
-
-#track-view table {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
+  position: relative;
+  height: 100%;
 }
 
 #bulk-bar {
@@ -231,7 +223,9 @@ tbody tr.selected { background: rgba(29, 185, 84, 0.1); }
   margin-top: 0.75rem;
   font-size: 0.9rem;
   border: 1px solid var(--border);
-  flex-shrink: 0;
+  position: sticky;
+  bottom: 1.5rem;
+  z-index: 10;
 }
 
 #bulk-count { color: var(--text-muted); }
